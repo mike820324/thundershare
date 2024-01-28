@@ -14,6 +14,13 @@ impl Customer {
         }
     }
 
+    pub fn new_with_id(id: &Uuid, username: &str) -> Customer {
+        Customer {
+            id: id.clone(),
+            username: username.to_string(),
+        }
+    }
+
     pub fn get_id(&self) -> Uuid {
         self.id
     }

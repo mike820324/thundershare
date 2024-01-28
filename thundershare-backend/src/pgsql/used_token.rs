@@ -20,6 +20,19 @@ impl UsedTokenRepository {
 #[async_trait]
 impl UsedTokenRepositoryTrait for UsedTokenRepository {
     async fn create_used_token(&self, token: &str, expire_time: DateTime<Utc>) -> Result<()> {
+        sqlx::query(
+            r#"
+                INSERT INTO
+                    signouttoken (token, expireat)
+                VALUES
+                    ($1, $2)
+            "#,
+        )
+        .bind(token.to_string())
+        .bind(expire_time)
+        .execute(&self.db_conn)
+        .await?;
+
         Ok(())
     }
 }
