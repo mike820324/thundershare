@@ -1,12 +1,14 @@
 use crate::domain::entity::identity::Identity;
+use crate::domain::error::customer::CustomerError;
 use crate::domain::service::customer::CustomerServiceTrait;
 use crate::domain::service::ServerService;
+use crate::presentation::ResponseData;
 
 use actix_web::cookie::time::{OffsetDateTime, Duration};
 use actix_web::cookie::{Cookie, SameSite};
 use actix_web::Responder;
 use actix_web::{web, HttpRequest, HttpResponse};
-use super::dto::{CustomerSigninV1ReqDTO, CustomerSignupV1ReqDTO};
+use super::dto::{CustomerSigninV1ReqDTO, CustomerSignupV1ReqDTO, CustomerSignupV1RespDTO};
 
 fn new_cookie(token: &str) -> Cookie {
     let mut now = OffsetDateTime::now_utc();
@@ -29,9 +31,19 @@ pub async fn customer_signup_v1 (
     let svc = server_services.customer_service.clone();
     let result = svc.customer_signup(&user_data.username, &user_data.password).await;
 
-    let token = result.unwrap().to_string().unwrap();
-    let cookie = new_cookie(&token);
-    HttpResponse::Ok().cookie(cookie).finish()
+    match result {
+        Ok(identity) => {
+            let resp: ResponseData<CustomerSignupV1RespDTO> = identity.clone().into();
+            let token = identity.to_string().unwrap();
+            let cookie = new_cookie(&token);
+            HttpResponse::Created().cookie(cookie).json(resp)
+        },
+        Err(err) => {
+            let domain_error: CustomerError = err.downcast().unwrap();
+            let resp: ResponseData<CustomerSignupV1RespDTO> = domain_error.into();
+            HttpResponse::BadRequest().json(resp)
+        }
+    }
 }
 
 pub async fn customer_signin_v1 (
@@ -41,10 +53,19 @@ pub async fn customer_signin_v1 (
     let svc = server_services.customer_service.clone();
     let svc_result = svc.customer_signin(&user_data.username, &user_data.password).await;
 
-    let token = svc_result.unwrap().to_string().unwrap();
-    let cookie = new_cookie(&token);
-
-    HttpResponse::Ok().cookie(cookie).finish()
+    match svc_result {
+        Ok(identity) => {
+            let resp: ResponseData<CustomerSignupV1RespDTO> = identity.clone().into();
+            let token = identity.to_string().unwrap();
+            let cookie = new_cookie(&token);
+            HttpResponse::Created().cookie(cookie).json(resp)
+        },
+        Err(err) => {
+            let domain_error: CustomerError = err.downcast().unwrap();
+            let resp: ResponseData<CustomerSignupV1RespDTO> = domain_error.into();
+            HttpResponse::Unauthorized().json(resp)
+        }
+    }
 }
 
 pub async fn customer_signout_v1 (
