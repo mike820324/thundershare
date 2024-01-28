@@ -7,4 +7,7 @@ pub enum CustomerError {
 
     #[error("invalid username/password combination ")]
     CustomerInvalidCredential,
+
+    #[error("customer not found")]
+    CustomerNotFound
 }

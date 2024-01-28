@@ -4,24 +4,29 @@ use tokio::sync::RwLock;
 
 use crate::domain::{
     entity::customer::Customer, error::customer::CustomerError,
-    repository::customer::MockCustomerRepositoryTrait,
+    repository::{customer::MockCustomerRepositoryTrait, used_token::MockUsedTokenRepositoryTrait},
 };
 
 use super::customer::{CustomerServiceImpl, CustomerServiceTrait};
 
-struct CustomerSignUpTestContext {
-    pub input_customer: Customer,
-    pub setup_fn: Box<dyn Fn() -> Arc<dyn CustomerServiceTrait>>,
-    pub expected: std::result::Result<Customer, CustomerError>,
+enum CustomerTestContextExpectedResult {
+    WithCustomerResult(Result<Customer, CustomerError>),
+    WithoutCustomerResult(Result<(), CustomerError>),
 }
 
-impl CustomerSignUpTestContext {
+struct CustomerSvcTestContext {
+    pub input_customer: Customer,
+    pub setup_fn: Box<dyn Fn() -> Arc<dyn CustomerServiceTrait>>,
+    pub expected: CustomerTestContextExpectedResult,
+}
+
+impl CustomerSvcTestContext {
     fn new(
         input_customer: Customer,
         setup_fn: impl Fn() -> Arc<dyn CustomerServiceTrait> + 'static,
-        expected: std::result::Result<Customer, CustomerError>,
-    ) -> CustomerSignUpTestContext {
-        CustomerSignUpTestContext {
+        expected: CustomerTestContextExpectedResult,
+    ) -> CustomerSvcTestContext {
+        CustomerSvcTestContext {
             input_customer,
             setup_fn: Box::new(setup_fn),
             expected,
@@ -32,9 +37,10 @@ impl CustomerSignUpTestContext {
 #[actix_rt::test]
 async fn test_customer_svc_signup() {
     let test_context = vec![
-        CustomerSignUpTestContext::new(
+        CustomerSvcTestContext::new(
             Customer::new("mikejiang", ""),
             || {
+                let mock_used_token_repo = MockUsedTokenRepositoryTrait::new();
                 let mock_customer_repo = {
                     let mut mock_repo = MockCustomerRepositoryTrait::new();
 
@@ -53,16 +59,18 @@ async fn test_customer_svc_signup() {
 
                 let svc = {
                     let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
-                    CustomerServiceImpl::new(customer_repo)
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(customer_repo, used_token_repo)
                 };
 
                 svc
             },
-            Ok(Customer::new("mikejiang", "")),
+            CustomerTestContextExpectedResult::WithCustomerResult(Ok(Customer::new("mikejiang", ""))),
         ),
-        CustomerSignUpTestContext::new(
+        CustomerSvcTestContext::new(
             Customer::new("brucewayne", ""),
             || {
+                let mock_used_token_repo = MockUsedTokenRepositoryTrait::new();
                 let mock_customer_repo = {
                     let mut mock_repo = MockCustomerRepositoryTrait::new();
 
@@ -75,12 +83,13 @@ async fn test_customer_svc_signup() {
 
                 let svc = {
                     let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
-                    CustomerServiceImpl::new(customer_repo)
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(customer_repo, used_token_repo)
                 };
 
                 svc
             },
-            Err(CustomerError::CustomerAlreadyExist),
+            CustomerTestContextExpectedResult::WithCustomerResult(Err(CustomerError::CustomerAlreadyExist)),
         ),
     ];
 
@@ -94,36 +103,18 @@ async fn test_customer_svc_signup() {
             .await
             .map_err(|err| err.downcast().unwrap());
 
-        assert_eq!(result, t.expected);
-    }
-}
-
-struct CustomerSignInTestContext {
-    pub input_customer: Customer,
-    pub setup_fn: Box<dyn Fn() -> Arc<dyn CustomerServiceTrait>>,
-    pub expected: std::result::Result<Customer, CustomerError>,
-}
-
-impl CustomerSignInTestContext {
-    fn new(
-        input_customer: Customer,
-        setup_fn: impl Fn() -> Arc<dyn CustomerServiceTrait> + 'static,
-        expected: std::result::Result<Customer, CustomerError>,
-    ) -> CustomerSignInTestContext {
-        CustomerSignInTestContext {
-            input_customer,
-            setup_fn: Box::new(setup_fn),
-            expected,
-        }
+        let CustomerTestContextExpectedResult::WithCustomerResult(expected_result) = t.expected else {return;};
+        assert_eq!(result, expected_result);
     }
 }
 
 #[actix_rt::test]
 async fn test_customer_svc_signin() {
     let test_context = vec![
-        CustomerSignInTestContext::new(
+        CustomerSvcTestContext::new(
             Customer::new("mikejiang", "password"),
             || {
+                let mock_used_token_repo = MockUsedTokenRepositoryTrait::new();
                 let mock_customer_repo = {
                     let mut mock_repo = MockCustomerRepositoryTrait::new();
 
@@ -139,16 +130,18 @@ async fn test_customer_svc_signin() {
 
                 let svc = {
                     let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
-                    CustomerServiceImpl::new(customer_repo)
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(customer_repo, used_token_repo)
                 };
 
                 svc
             },
-            Ok(Customer::new("mikejiang", "password")),
+            CustomerTestContextExpectedResult::WithCustomerResult(Ok(Customer::new("mikejiang", "password"))),
         ),
-        CustomerSignInTestContext::new(
+        CustomerSvcTestContext::new(
             Customer::new("brucewayne", ""),
             || {
+                let mock_used_token_repo = MockUsedTokenRepositoryTrait::new();
                 let mock_customer_repo = {
                     let mut mock_repo = MockCustomerRepositoryTrait::new();
 
@@ -161,12 +154,13 @@ async fn test_customer_svc_signin() {
 
                 let svc = {
                     let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
-                    CustomerServiceImpl::new(customer_repo)
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(customer_repo, used_token_repo)
                 };
 
                 svc
             },
-            Err(CustomerError::CustomerInvalidCredential),
+            CustomerTestContextExpectedResult::WithCustomerResult(Err(CustomerError::CustomerInvalidCredential)),
         ),
     ];
 
@@ -180,6 +174,125 @@ async fn test_customer_svc_signin() {
             .await
             .map_err(|err| err.downcast().unwrap());
 
-        assert_eq!(result, t.expected);
+        let CustomerTestContextExpectedResult::WithCustomerResult(expected_result) = t.expected else {return;};
+        assert_eq!(result, expected_result);
+    }
+}
+
+#[actix_rt::test]
+async fn test_customer_svc_signout() {
+    let test_context = vec![
+        CustomerSvcTestContext::new(
+            Customer::new("mikejiang", "password"),
+            || {
+                let mock_used_token_repo = {
+                    let mut mock_repo = MockUsedTokenRepositoryTrait::new();
+
+                    mock_repo
+                        .expect_create_used_token()
+                        .times(1)
+                        .returning(move |token, expire_time| {
+                            Ok(())
+                        });
+
+                    mock_repo
+                };
+
+                let mock_customer_repo = MockCustomerRepositoryTrait::new();
+
+                let svc = {
+                    let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(customer_repo, used_token_repo)
+                };
+
+                svc
+            },
+            CustomerTestContextExpectedResult::WithoutCustomerResult(Ok(())),
+        ),
+    ];
+
+    for t in test_context {
+        let svc = (t.setup_fn)();
+        let result = svc
+            .customer_signout(&t.input_customer)
+            .await
+            .map_err(|err| err.downcast().unwrap());
+
+        let CustomerTestContextExpectedResult::WithoutCustomerResult(expected_result) = t.expected else {return;};
+        assert_eq!(result, expected_result);
+    }
+}
+
+#[actix_rt::test]
+async fn test_customer_svc_get_customer_by_username() {
+    let test_context = vec![
+        CustomerSvcTestContext::new(
+            Customer::new("mikejiang", "password"),
+            || {
+                let mock_used_token_repo = {
+                    let mut mock_repo = MockUsedTokenRepositoryTrait::new();
+                    mock_repo
+                };
+
+                let mock_customer_repo = {
+                    let mut mock_repo = MockCustomerRepositoryTrait::new();
+                    mock_repo.expect_get_customer_by_username()
+                    .times(1)
+                    .returning(|username| {
+                        Ok(vec![Customer::new(username, "password")])
+                    });
+                    mock_repo
+                };
+
+                let svc = {
+                    let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(customer_repo, used_token_repo)
+                };
+
+                svc
+            },
+            CustomerTestContextExpectedResult::WithCustomerResult(Ok(Customer::new("mikejiang", "password"))),
+        ),
+        CustomerSvcTestContext::new(
+            Customer::new("mikejiang", "password"),
+            || {
+                let mock_used_token_repo = {
+                    let mut mock_repo = MockUsedTokenRepositoryTrait::new();
+                    mock_repo
+                };
+
+                let mock_customer_repo = {
+                    let mut mock_repo = MockCustomerRepositoryTrait::new();
+                    mock_repo.expect_get_customer_by_username()
+                    .times(1)
+                    .returning(|username| {
+                        Ok(vec![])
+                    });
+                    mock_repo
+                };
+
+                let svc = {
+                    let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(customer_repo, used_token_repo)
+                };
+
+                svc
+            },
+            CustomerTestContextExpectedResult::WithCustomerResult(Err(CustomerError::CustomerNotFound)),
+        ),
+    ];
+
+    for t in test_context {
+        let svc = (t.setup_fn)();
+        let result = svc
+            .get_customer_by_username(&t.input_customer.get_username())
+            .await
+            .map_err(|err| err.downcast().unwrap());
+
+        let CustomerTestContextExpectedResult::WithCustomerResult(expected_result) = t.expected else {return;};
+        assert_eq!(result, expected_result);
     }
 }
