@@ -5,9 +5,7 @@ use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer};
 use env_logger::Env;
 
-
-pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {
-}
+pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
