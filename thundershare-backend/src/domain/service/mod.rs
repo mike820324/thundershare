@@ -25,16 +25,9 @@ impl ServerService {
         customer_repository: Arc<RwLock<dyn CustomerRepositoryTrait>>,
         used_token_repository: Arc<RwLock<dyn UsedTokenRepositoryTrait>>,
     ) -> ServerService {
-        let customer_service = CustomerServiceImpl::new(
-            issue_at_fn,
-            customer_repository,
-            used_token_repository,
-        );
+        let customer_service =
+            CustomerServiceImpl::new(issue_at_fn, customer_repository, used_token_repository);
 
-        ServerService {
-            customer_service,
-        }
+        ServerService { customer_service }
     }
 }
-
-

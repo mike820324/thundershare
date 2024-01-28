@@ -7,7 +7,9 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use urlencoding::encode;
 
-use crate::domain::repository::{customer::CustomerRepositoryTrait, used_token::UsedTokenRepositoryTrait};
+use crate::domain::repository::{
+    customer::CustomerRepositoryTrait, used_token::UsedTokenRepositoryTrait,
+};
 
 use self::{customer::CustomerRepository, used_token::UsedTokenRepository};
 
@@ -27,7 +29,6 @@ pub async fn connection_builder() -> Result<DbPool, sqlx::Error> {
     sqlx::postgres::PgPool::connect(&connectspec).await
 }
 
-
 pub struct ServerRepositories {
     pub customer_repository: Arc<RwLock<dyn CustomerRepositoryTrait>>,
     pub used_token_repository: Arc<RwLock<dyn UsedTokenRepositoryTrait>>,
@@ -44,4 +45,3 @@ impl ServerRepositories {
         }
     }
 }
-

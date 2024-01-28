@@ -8,7 +8,6 @@ use crate::domain::{entity::customer::Customer, repository::customer::CustomerRe
 
 use super::DbPool;
 
-
 #[derive(Clone)]
 pub struct CustomerRepository {
     db_conn: DbPool,
@@ -38,4 +37,3 @@ impl CustomerRepositoryTrait for CustomerRepository {
         Ok(vec![])
     }
 }
-

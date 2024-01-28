@@ -4,11 +4,11 @@ use crate::domain::service::customer::CustomerServiceTrait;
 use crate::domain::service::ServerService;
 use crate::presentation::ResponseData;
 
-use actix_web::cookie::time::{OffsetDateTime, Duration};
+use super::dto::{CustomerSigninV1ReqDTO, CustomerSignupV1ReqDTO, CustomerSignupV1RespDTO};
+use actix_web::cookie::time::{Duration, OffsetDateTime};
 use actix_web::cookie::{Cookie, SameSite};
 use actix_web::Responder;
 use actix_web::{web, HttpRequest, HttpResponse};
-use super::dto::{CustomerSigninV1ReqDTO, CustomerSignupV1ReqDTO, CustomerSignupV1RespDTO};
 
 fn new_cookie(token: &str) -> Cookie {
     let mut now = OffsetDateTime::now_utc();
@@ -24,12 +24,14 @@ fn new_cookie(token: &str) -> Cookie {
     cookie
 }
 
-pub async fn customer_signup_v1 (
+pub async fn customer_signup_v1(
     server_services: web::Data<ServerService>,
     user_data: web::Json<CustomerSignupV1ReqDTO>,
 ) -> impl Responder {
     let svc = server_services.customer_service.clone();
-    let result = svc.customer_signup(&user_data.username, &user_data.password).await;
+    let result = svc
+        .customer_signup(&user_data.username, &user_data.password)
+        .await;
 
     match result {
         Ok(identity) => {
@@ -37,7 +39,7 @@ pub async fn customer_signup_v1 (
             let token = identity.to_string().unwrap();
             let cookie = new_cookie(&token);
             HttpResponse::Created().cookie(cookie).json(resp)
-        },
+        }
         Err(err) => {
             let domain_error: CustomerError = err.downcast().unwrap();
             let resp: ResponseData<CustomerSignupV1RespDTO> = domain_error.into();
@@ -46,12 +48,14 @@ pub async fn customer_signup_v1 (
     }
 }
 
-pub async fn customer_signin_v1 (
+pub async fn customer_signin_v1(
     server_services: web::Data<ServerService>,
-    user_data: web::Json<CustomerSigninV1ReqDTO>
+    user_data: web::Json<CustomerSigninV1ReqDTO>,
 ) -> impl Responder {
     let svc = server_services.customer_service.clone();
-    let svc_result = svc.customer_signin(&user_data.username, &user_data.password).await;
+    let svc_result = svc
+        .customer_signin(&user_data.username, &user_data.password)
+        .await;
 
     match svc_result {
         Ok(identity) => {
@@ -59,7 +63,7 @@ pub async fn customer_signin_v1 (
             let token = identity.to_string().unwrap();
             let cookie = new_cookie(&token);
             HttpResponse::Created().cookie(cookie).json(resp)
-        },
+        }
         Err(err) => {
             let domain_error: CustomerError = err.downcast().unwrap();
             let resp: ResponseData<CustomerSignupV1RespDTO> = domain_error.into();
@@ -68,7 +72,7 @@ pub async fn customer_signin_v1 (
     }
 }
 
-pub async fn customer_signout_v1 (
+pub async fn customer_signout_v1(
     server_services: web::Data<ServerService>,
     request: HttpRequest,
 ) -> impl Responder {

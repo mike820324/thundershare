@@ -11,12 +11,10 @@ pub struct CustomerJsonWebToken {
     pub iat: i64,
 }
 
-
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 pub struct Identity {
     pub token: CustomerJsonWebToken,
 }
-
 
 impl Identity {
     pub fn new(customer: &Customer, issueat: &DateTime<Utc>, duration: Duration) -> Identity {
@@ -67,4 +65,3 @@ impl Identity {
         self.token.sub.get_username()
     }
 }
-

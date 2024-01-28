@@ -9,5 +9,5 @@ pub enum CustomerError {
     CustomerInvalidCredential,
 
     #[error("customer not found")]
-    CustomerNotFound
+    CustomerNotFound,
 }

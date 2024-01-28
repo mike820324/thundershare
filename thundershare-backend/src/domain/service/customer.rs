@@ -1,14 +1,13 @@
-use crate::domain::{entity::customer::Customer, repository::used_token::UsedTokenRepositoryTrait};
+use crate::domain::entity::identity::Identity;
 use crate::domain::error::customer::CustomerError;
 use crate::domain::repository::customer::CustomerRepositoryTrait;
-use crate::domain::entity::identity::Identity;
+use crate::domain::{entity::customer::Customer, repository::used_token::UsedTokenRepositoryTrait};
 use anyhow::{bail, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use mockall::automock;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
 
 #[automock]
 #[async_trait(?Send)]
@@ -82,7 +81,8 @@ impl CustomerServiceTrait for CustomerServiceImpl {
 
     async fn customer_signout(&self, identity: &Identity) -> Result<()> {
         let repo = self.used_token_repository.write().await;
-        repo.create_used_token(&identity.to_string()?, identity.get_expireat()).await?;
+        repo.create_used_token(&identity.to_string()?, identity.get_expireat())
+            .await?;
         Ok(())
     }
 
@@ -97,6 +97,5 @@ impl CustomerServiceTrait for CustomerServiceImpl {
         }
 
         Ok(customer_list[0].clone())
-
     }
 }

@@ -1,11 +1,10 @@
-use std::sync::Arc;
+use super::DbPool;
+use crate::domain::repository::used_token::UsedTokenRepositoryTrait;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::domain::repository::used_token::UsedTokenRepositoryTrait;
-use super::DbPool;
-
 
 #[derive(Clone)]
 pub struct UsedTokenRepository {
@@ -24,4 +23,3 @@ impl UsedTokenRepositoryTrait for UsedTokenRepository {
         Ok(())
     }
 }
-
