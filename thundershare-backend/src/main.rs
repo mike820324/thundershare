@@ -3,13 +3,19 @@ mod presentation;
 mod pgsql;
 
 use actix_web::middleware::Logger;
-use actix_web::web::Data;
+use actix_web::web::{self, Data};
 use actix_web::{App, HttpServer};
 use domain::service::ServerService;
 use env_logger::Env;
 use pgsql::{connection_builder, ServerRepositories};
+use presentation::customer::view::{customer_signin_v1, customer_signup_v1, customer_signout_v1};
 
-pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {}
+pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {
+    // NOTE: customer auth related endpoints
+    cfg.route("/api/v1/customer/signup", web::post().to(customer_signup_v1))
+    .route("/api/v1/customer/signin", web::post().to(customer_signin_v1))
+    .route("/api/v1/customer/signout", web::post().to(customer_signout_v1));
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
