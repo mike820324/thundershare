@@ -1,33 +1,38 @@
 use crate::domain::{entity::customer::Customer, repository::used_token::UsedTokenRepositoryTrait};
 use crate::domain::error::customer::CustomerError;
 use crate::domain::repository::customer::CustomerRepositoryTrait;
+use crate::domain::entity::identity::Identity;
 use anyhow::{bail, Result};
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Duration, Utc};
 use mockall::automock;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+
 #[automock]
 #[async_trait(?Send)]
 pub trait CustomerServiceTrait {
-    async fn customer_signup(&self, username: &str, password: &str) -> Result<Customer>;
-    async fn customer_signin(&self, username: &str, password: &str) -> Result<Customer>;
-    async fn customer_signout(&self, customer: &Customer) -> Result<()>;
+    async fn customer_signup(&self, username: &str, password: &str) -> Result<Identity>;
+    async fn customer_signin(&self, username: &str, password: &str) -> Result<Identity>;
+    async fn customer_signout(&self, identity: &Identity) -> Result<()>;
     async fn get_customer_by_username(&self, username: &str) -> Result<Customer>;
 }
 
 pub struct CustomerServiceImpl {
+    issue_at_fn: Box<dyn Fn() -> DateTime<Utc>>,
     customer_repository: Arc<RwLock<dyn CustomerRepositoryTrait>>,
     used_token_repository: Arc<RwLock<dyn UsedTokenRepositoryTrait>>,
 }
 
 impl CustomerServiceImpl {
     pub fn new(
+        issue_at_fn: impl Fn() -> DateTime<Utc> + 'static,
         customer_repository: Arc<RwLock<dyn CustomerRepositoryTrait>>,
         used_token_repository: Arc<RwLock<dyn UsedTokenRepositoryTrait>>,
     ) -> Arc<CustomerServiceImpl> {
         Arc::new(CustomerServiceImpl {
+            issue_at_fn: Box::new(issue_at_fn),
             customer_repository,
             used_token_repository,
         })
@@ -36,7 +41,7 @@ impl CustomerServiceImpl {
 
 #[async_trait(?Send)]
 impl CustomerServiceTrait for CustomerServiceImpl {
-    async fn customer_signup(&self, username: &str, password: &str) -> Result<Customer> {
+    async fn customer_signup(&self, username: &str, password: &str) -> Result<Identity> {
         let customer_list = {
             let repo = self.customer_repository.read().await;
             repo.get_customer_by_username(username).await?
@@ -51,10 +56,14 @@ impl CustomerServiceTrait for CustomerServiceImpl {
             repo.create_customer(username, password).await?
         };
 
-        Ok(customer)
+        let issueat = (self.issue_at_fn)();
+        let duration = Duration::minutes(10);
+        let identity = Identity::new(&customer, &issueat, duration);
+
+        Ok(identity)
     }
 
-    async fn customer_signin(&self, username: &str, password: &str) -> Result<Customer> {
+    async fn customer_signin(&self, username: &str, password: &str) -> Result<Identity> {
         let customer_list = {
             let repo = self.customer_repository.read().await;
             repo.get_customer_by_credential(username, password).await?
@@ -64,17 +73,16 @@ impl CustomerServiceTrait for CustomerServiceImpl {
             bail!(CustomerError::CustomerInvalidCredential)
         }
 
-        Ok(customer_list[0].clone())
+        let issueat = (self.issue_at_fn)();
+        let duration = Duration::minutes(10);
+        let identity = Identity::new(&customer_list[0], &issueat, duration);
+
+        Ok(identity)
     }
 
-    async fn customer_signout(&self, customer: &Customer) -> Result<()> {
-
-        // TODO:
-        // input should be a identity object that wrap up the customer ID
-        // from the identity object, we can get the token and expire time
+    async fn customer_signout(&self, identity: &Identity) -> Result<()> {
         let repo = self.used_token_repository.write().await;
-
-        repo.create_used_token("", chrono::offset::Utc::now()).await?;
+        repo.create_used_token(&identity.to_string()?, identity.get_expireat()).await?;
         Ok(())
     }
 

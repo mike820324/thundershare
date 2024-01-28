@@ -1,18 +1,16 @@
 use sqlx::types::Uuid;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Customer {
     id: Uuid,
     username: String,
-    password: String,
 }
 
 impl Customer {
-    pub fn new(username: &str, password: &str) -> Customer {
+    pub fn new(username: &str) -> Customer {
         Customer {
             id: Uuid::default(),
             username: username.to_string(),
-            password: password.to_string(),
         }
     }
 
@@ -22,9 +20,5 @@ impl Customer {
 
     pub fn get_username(&self) -> String {
         self.username.clone()
-    }
-
-    pub fn get_password(&self) -> String {
-        self.password.clone()
     }
 }
