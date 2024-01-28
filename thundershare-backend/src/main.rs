@@ -1,9 +1,13 @@
 mod domain;
 mod presentation;
+mod pgsql;
 
 use actix_web::middleware::Logger;
+use actix_web::web::Data;
 use actix_web::{App, HttpServer};
+use domain::service::ServerService;
 use env_logger::Env;
+use pgsql::{connection_builder, ServerRepositories};
 
 pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {}
 
@@ -16,9 +20,17 @@ async fn main() -> std::io::Result<()> {
     let server_port = std::env::var("SERVER_PORT").unwrap();
     let server_location = server_host + ":" + &server_port;
 
+    let db_pool = connection_builder().await.unwrap();
+
     HttpServer::new(move || {
+        let server_repositories = ServerRepositories::new(db_pool.clone());
+        let server_domain_services = ServerService::new(
+            server_repositories.customer_repository,
+            server_repositories.used_token_repository
+        );
         App::new()
             .wrap(Logger::default())
+            .app_data(Data::new(server_domain_services))
             .configure(register_routes)
     })
     .bind(&server_location)?
