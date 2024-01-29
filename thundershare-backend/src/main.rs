@@ -5,10 +5,12 @@ mod presentation;
 use actix_web::middleware::Logger;
 use actix_web::web::{self, Data};
 use actix_web::{App, HttpServer};
+use domain::service::file::LocalFileUploaderImpl;
 use domain::service::ServerService;
 use env_logger::Env;
 use pgsql::{connection_builder, ServerRepositories};
 use presentation::customer::view::{customer_signin_v1, customer_signout_v1, customer_signup_v1};
+use presentation::file::view::{file_list_by_customer_id_v1, file_read_by_id_v1, file_upload_v1};
 
 pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {
     // NOTE: customer auth related endpoints
@@ -24,6 +26,20 @@ pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {
         "/api/v1/customer/signout",
         web::post().to(customer_signout_v1),
     );
+
+    // NOTE: file meta related endpoints
+    cfg.route(
+        "/api/v1/file",
+        web::get().to(file_list_by_customer_id_v1),
+    )
+    .route(
+        "/api/v1/file/{id}",
+        web::get().to(file_read_by_id_v1),
+    )
+    .route(
+        "/api/v1/file",
+        web::post().to(file_upload_v1),
+    );
 }
 
 #[actix_web::main]
@@ -38,10 +54,13 @@ async fn main() -> std::io::Result<()> {
     let db_pool = connection_builder().await.unwrap();
 
     HttpServer::new(move || {
+        let file_uploader = LocalFileUploaderImpl::new();
         let server_repositories = ServerRepositories::new(db_pool.clone());
         let server_domain_services = ServerService::new(
+            file_uploader,
             server_repositories.customer_repository,
             server_repositories.used_token_repository,
+            server_repositories.file_meta_repository,
         );
         App::new()
             .wrap(Logger::default())

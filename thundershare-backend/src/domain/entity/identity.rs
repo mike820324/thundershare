@@ -3,6 +3,7 @@ use anyhow::Result;
 use chrono::prelude::*;
 use chrono::Duration;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use uuid::Uuid;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 pub struct CustomerJsonWebToken {
@@ -52,8 +53,8 @@ impl Identity {
         Ok(session_str)
     }
 
-    pub fn get_id(&self) -> String {
-        self.token.sub.get_id().to_string()
+    pub fn get_id(&self) -> Uuid {
+        self.token.sub.get_id()
     }
 
     pub fn get_expireat(&self) -> DateTime<Utc> {
