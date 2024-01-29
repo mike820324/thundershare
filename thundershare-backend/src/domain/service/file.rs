@@ -15,6 +15,21 @@ pub trait FileUploaderTrait {
     async fn upload(&self, data_blob: Vec<Bytes<u8>>) -> Result<()>;
 }
 
+pub struct LocalFileUploaderImpl {}
+
+impl LocalFileUploaderImpl {
+    pub fn new() -> Arc<dyn FileUploaderTrait> {
+        Arc::new(LocalFileUploaderImpl{})
+    }
+}
+
+#[async_trait(?Send)]
+impl FileUploaderTrait for LocalFileUploaderImpl {
+    async fn upload(&self, data_blob: Vec<Bytes<u8>>) -> Result<()> {
+        Ok(())
+    }
+}
+
 #[automock]
 #[async_trait(?Send)]
 pub trait FileServiceTrait {
