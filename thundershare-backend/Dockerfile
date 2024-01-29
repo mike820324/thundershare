@@ -15,7 +15,6 @@ FROM debian:buster-slim
 RUN mkdir /var/app
 WORKDIR /var/app
 COPY --from=builder /var/app/target/release/thundershare-backend ./thundershare-backend
-COPY .env .env
 CMD ["/var/app/thundershare-backend"]
 
 
