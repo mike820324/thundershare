@@ -3,3 +3,4 @@ pub mod customer;
 pub mod customer_test;
 
 pub mod identity;
+pub mod file_meta;

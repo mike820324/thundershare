@@ -2,6 +2,11 @@ pub mod customer;
 #[cfg(test)]
 pub mod customer_test;
 
+pub mod file;
+
+#[cfg(test)]
+pub mod file_test;
+
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
