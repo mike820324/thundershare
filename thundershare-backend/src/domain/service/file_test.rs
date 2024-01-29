@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
-use uuid::Uuid;
+use uuid::{uuid, Uuid};
 
 use crate::domain::{entity::file_meta::FileMeta, error::file::FileError, repository::file_meta::MockFileMetaRepositoryTrait};
 
@@ -94,12 +94,42 @@ async fn test_file_svc_read_by_id() {
             },
             FileSvcTestContextExpectedResult::WithFileMetaResult(Err(FileError::FileNotFound)),
         ),
+        FileSvcTestContext::new(
+            FileMeta::new(""),
+            || {
+                let mock_file_meta_repo = {
+                    let mut mock_repo = MockFileMetaRepositoryTrait::new();
+
+                    mock_repo
+                        .expect_get_file_meta_by_id()
+                        .times(1)
+                        .returning(move |_id| Ok(vec![FileMeta::new_full(&Uuid::default(), &uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8"), "")]));
+
+                    mock_repo
+                };
+
+                let mock_file_uploader = {
+                    let mut mock_repo = MockFileUploaderTrait::new();
+
+                    mock_repo
+                };
+
+                let svc = {
+                    let file_uploader = Arc::new(mock_file_uploader);
+                    let file_meta_repo = Arc::new(RwLock::new(mock_file_meta_repo));
+                    FileServiceImpl::new(file_uploader, file_meta_repo)
+                };
+
+                svc
+            },
+            FileSvcTestContextExpectedResult::WithFileMetaResult(Err(FileError::FileNotBelongToCustomer)),
+        ),
     ];
 
     for t in test_context {
         let svc = (t.setup_fn)();
         let result = svc
-            .file_read_by_id(&Uuid::default())
+            .file_read_by_id(&Uuid::default(), &Uuid::default())
             .await
             .map_err(|err| err.downcast().unwrap());
 

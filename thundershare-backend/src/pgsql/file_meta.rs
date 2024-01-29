@@ -13,12 +13,13 @@ use super::DbPool;
 #[derive(Debug, FromRow, Clone)]
 struct FileMetaDAO {
     id: Uuid,
+    customer_id: Uuid,
     url: String,
 }
 
 impl From<FileMetaDAO> for FileMeta {
     fn from(dao: FileMetaDAO) -> FileMeta {
-        FileMeta::new_with_id(&dao.id, &dao.url)
+        FileMeta::new_full(&dao.id, &dao.customer_id, &dao.url)
     }
 }
 

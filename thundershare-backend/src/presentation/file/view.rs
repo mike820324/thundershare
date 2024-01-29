@@ -27,7 +27,7 @@ pub async fn file_read_by_id_v1(
     let identity = Identity::from_string(&token.value()).unwrap();
 
     let svc = server_services.file_service.clone();
-    let result = svc.file_read_by_id(&file_id).await;
+    let result = svc.file_read_by_id(&file_id, &identity.get_id()).await;
 
     match result {
         Ok(file_meta) => {
@@ -36,10 +36,11 @@ pub async fn file_read_by_id_v1(
         },
         Err(err) => {
             let domain_err: FileError = err.downcast().unwrap();
-            let resp: ResponseData<FileReadByIdV1RespDTO> = domain_err.into();
+            let resp: ResponseData<FileReadByIdV1RespDTO> = domain_err.clone().into();
 
             match domain_err {
-                FileError::FileNotFound => HttpResponse::NotFound().json(resp)
+                FileError::FileNotFound => HttpResponse::NotFound().json(resp),
+                FileError::FileNotBelongToCustomer => HttpResponse::Forbidden().json(resp),
             }
         }
     }
@@ -102,10 +103,11 @@ pub async fn file_upload_v1(
         },
         Err(err) => {
             let domain_err: FileError = err.downcast().unwrap();
-            let resp: ResponseData<FileUploadV1RespDTO> = domain_err.into();
+            let resp: ResponseData<FileUploadV1RespDTO> = domain_err.clone().into();
 
             match domain_err {
-                FileError::FileNotFound => HttpResponse::NotFound().json(resp)
+                FileError::FileNotFound => HttpResponse::NotFound().json(resp),
+                FileError::FileNotBelongToCustomer => HttpResponse::Forbidden().json(resp),
             }
         }
     }

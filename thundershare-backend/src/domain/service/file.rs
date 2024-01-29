@@ -34,7 +34,7 @@ impl FileUploaderTrait for LocalFileUploaderImpl {
 #[async_trait(?Send)]
 pub trait FileServiceTrait {
     async fn file_upload(&self, data_blob: Vec<Bytes<u8>>) -> Result<FileMeta>;
-    async fn file_read_by_id(&self, id: &Uuid) -> Result<FileMeta>;
+    async fn file_read_by_id(&self, id: &Uuid, customer_id: &Uuid) -> Result<FileMeta>;
     async fn file_list_by_customer_id(&self, customer_id: &Uuid) -> Result<Vec<FileMeta>>;
 }
 
@@ -73,7 +73,7 @@ impl FileServiceTrait for FileServiceImpl {
         Ok(file_meta)
     }
 
-    async fn file_read_by_id(&self, id: &Uuid) -> Result<FileMeta> {
+    async fn file_read_by_id(&self, id: &Uuid, customer_id: &Uuid) -> Result<FileMeta> {
         let file_meta_list = {
             let repo = self.file_meta_repository.read().await;
             repo.get_file_meta_by_id(id).await?
@@ -83,7 +83,13 @@ impl FileServiceTrait for FileServiceImpl {
             bail!(FileError::FileNotFound)
         }
 
-        Ok(file_meta_list[0].clone())
+        let file_meta = file_meta_list[0].clone();
+        if file_meta.get_customer_id() != *customer_id {
+            bail!(FileError::FileNotBelongToCustomer)
+        }
+
+
+        Ok(file_meta)
     }
 
     async fn file_list_by_customer_id(&self, customer_id: &Uuid) -> Result<Vec<FileMeta>> {
