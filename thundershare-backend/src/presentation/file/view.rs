@@ -4,11 +4,12 @@ use crate::domain::service::file::FileServiceTrait;
 use crate::domain::service::ServerService;
 use crate::presentation::ResponseData;
 
+use actix_multipart::form::MultipartForm;
 use actix_web::Responder;
 use actix_web::{web, HttpRequest, HttpResponse};
 use uuid::Uuid;
 
-use super::dto::{FileListByCustomerIdV1RespDTO, FileReadByIdV1RespDTO, FileUploadV1RespDTO};
+use super::dto::{FileListByCustomerIdV1RespDTO, FileReadByIdV1RespDTO, FileUploadV1ReqDTO, FileUploadV1RespDTO};
 
 pub async fn file_read_by_id_v1(
     server_services: web::Data<ServerService>,
@@ -80,6 +81,7 @@ pub async fn file_list_by_customer_id_v1(
 
 pub async fn file_upload_v1(
     server_services: web::Data<ServerService>,
+    MultipartForm(form): MultipartForm<FileUploadV1ReqDTO>,
     request: HttpRequest,
 ) -> impl Responder {
     // NOTE: authn checking
@@ -90,10 +92,15 @@ pub async fn file_upload_v1(
         }
     };
 
-    let identity = Identity::from_string(&token.value()).unwrap();
+    if Identity::from_string(&token.value()).is_err() {
+        return HttpResponse::Unauthorized().finish();
+    }
+
+    let temp_filename = form.get_temp_filename();
+
     let svc = server_services.file_service.clone();
     let result = svc
-        .file_upload(vec![])
+        .file_upload(&temp_filename)
         .await;
 
     match result {

@@ -241,7 +241,7 @@ async fn test_file_svc_file_upload() {
 
                     mock_repo.expect_upload()
                     .times(1)
-                    .returning(|_url| {Ok(())});
+                    .returning(|_src, _dest| {Ok(())});
 
                     mock_repo
                 };
@@ -261,7 +261,7 @@ async fn test_file_svc_file_upload() {
     for t in test_context {
         let svc = (t.setup_fn)();
         let result = svc
-            .file_upload(vec![])
+            .file_upload("")
             .await
             .map_err(|err| err.downcast().unwrap());
 
