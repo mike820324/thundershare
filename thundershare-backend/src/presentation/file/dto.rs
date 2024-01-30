@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use uuid::Uuid;
 
 use crate::{domain::{entity::file_meta::FileMeta, error::file::FileError}, presentation::ResponseData};
@@ -48,6 +51,19 @@ impl From<Vec<FileMeta>> for ResponseData<FileListByCustomerIdV1RespDTO> {
 
         let resp_data = Some(FileListByCustomerIdV1RespDTO{file_meta_list: file_meta_list});
         ResponseData::new(true, String::new(), resp_data)
+    }
+}
+
+#[derive(MultipartForm)]
+pub struct FileUploadV1ReqDTO{
+    #[multipart(limit = "32 MiB")]
+    data: TempFile
+}
+
+impl FileUploadV1ReqDTO {
+    pub fn get_temp_filename(&self) -> String {
+        let temp_file = &self.data;
+        temp_file.file_name.clone().unwrap()
     }
 }
 
