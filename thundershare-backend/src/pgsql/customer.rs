@@ -80,6 +80,22 @@ impl CustomerRepositoryTrait for CustomerRepository {
         Ok(customer_list.into_iter().map(|dao| dao.into()).collect())
     }
 
+    async fn get_customer_by_id(&self, id: &Uuid) -> Result<Vec<Customer>> {
+        let customer_list: Vec<CustomerDAO> = sqlx::query_as(
+            r#"
+                SELECT id, username FROM
+                    customer
+                WHERE
+                    id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_all(&self.db_conn)
+        .await?;
+
+        Ok(customer_list.into_iter().map(|dao| dao.into()).collect())
+    }
+
     async fn get_customer_by_credential(
         &self,
         username: &str,
