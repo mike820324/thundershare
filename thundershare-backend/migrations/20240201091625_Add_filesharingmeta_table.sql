@@ -5,6 +5,6 @@ CREATE TABLE filesharingmeta (
     link TEXT,
     expireat TIMETZ,
     password TEXT,
-    FOREIGN KEY(file_id) REFERENCES file_meta(id)
+    FOREIGN KEY(file_id) REFERENCES filemeta(id)
 );
 
