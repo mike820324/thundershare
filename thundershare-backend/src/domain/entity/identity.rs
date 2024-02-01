@@ -3,11 +3,12 @@ use anyhow::Result;
 use chrono::prelude::*;
 use chrono::Duration;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use log::info;
 use uuid::Uuid;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 pub struct CustomerJsonWebToken {
-    pub sub: Customer,
+    pub sub: Uuid,
     pub exp: i64,
     pub iat: i64,
 }
@@ -23,7 +24,7 @@ impl Identity {
         let exp = iat + duration;
 
         let token = CustomerJsonWebToken {
-            sub: customer.clone(),
+            sub: customer.get_id(),
             exp: exp.timestamp(),
             iat: iat.timestamp(),
         };
@@ -32,12 +33,13 @@ impl Identity {
     }
 
     pub fn from_string(value: &str) -> Result<Identity> {
-        let jwt = decode::<CustomerJsonWebToken>(
+        let result = decode::<CustomerJsonWebToken>(
             value,
             // TODO: move to configuration
             &DecodingKey::from_secret("secret".as_ref()),
             &Validation::default(),
-        )?;
+        );
+        let jwt = result?;
 
         Ok(Identity { token: jwt.claims })
     }
@@ -54,7 +56,8 @@ impl Identity {
     }
 
     pub fn get_id(&self) -> Uuid {
-        self.token.sub.get_id()
+        // self.token.sub.get_id()
+        self.token.sub
     }
 
     pub fn get_expireat(&self) -> DateTime<Utc> {
@@ -62,7 +65,7 @@ impl Identity {
         Utc.timestamp_opt(ts, 0).unwrap()
     }
 
-    pub fn get_username(&self) -> String {
-        self.token.sub.get_username()
-    }
+    // pub fn get_username(&self) -> String {
+    //     self.token.sub.get_username()
+    // }
 }

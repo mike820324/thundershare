@@ -8,6 +8,7 @@ use actix_multipart::form::MultipartForm;
 use actix_web::Responder;
 use actix_web::{web, HttpRequest, HttpResponse};
 use uuid::Uuid;
+use log::info;
 
 use super::dto::{FileListByCustomerIdV1RespDTO, FileReadByIdV1RespDTO, FileUploadV1ReqDTO, FileUploadV1RespDTO};
 
@@ -60,6 +61,7 @@ pub async fn file_list_by_customer_id_v1(
         }
     };
 
+    info!("[DEBUG] {}", &token.value());
     let identity = Identity::from_string(&token.value()).unwrap();
     let svc = server_services.file_service.clone();
     let result = svc
@@ -92,15 +94,18 @@ pub async fn file_upload_v1(
         }
     };
 
-    if Identity::from_string(&token.value()).is_err() {
-        return HttpResponse::Unauthorized().finish();
-    }
+    let identity = match Identity::from_string(&token.value()) {
+        Ok(identity) => identity,
+        Err(_err) => {
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
 
     let temp_filename = form.get_temp_filename();
 
     let svc = server_services.file_service.clone();
     let result = svc
-        .file_upload(&temp_filename)
+        .file_upload(&identity.get_id(), &temp_filename)
         .await;
 
     match result {

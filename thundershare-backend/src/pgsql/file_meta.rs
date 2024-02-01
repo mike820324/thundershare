@@ -36,15 +36,71 @@ impl FileMetaRepository {
 
 #[async_trait]
 impl FileMetaRepositoryTrait for FileMetaRepository {
-    async fn create(&self, url: &str) -> Result<FileMeta> {
-        Ok(FileMeta::new(""))
+    async fn create(&self, customer_id: &Uuid, url: &str) -> Result<FileMeta> {
+        let (id, ): (Uuid,) = sqlx::query_as(
+            r#"
+                INSERT INTO
+                    filemeta (customer_id, url)
+                VALUES
+                    ($1, $2)
+                RETURNING id;
+            "#,
+        )
+        .bind(customer_id)
+        .bind(url)
+        .fetch_one(&self.db_conn)
+        .await?;
+
+        let filemeta: FileMetaDAO = sqlx::query_as(
+            r#"
+                SELECT id, customer_id, url FROM
+                    filemeta
+                WHERE
+                    id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.db_conn)
+        .await?;
+
+        Ok(filemeta.into())
     }
 
     async fn get_file_meta_by_id(&self, id: &Uuid) -> Result<Vec<FileMeta>> {
-        Ok(vec![])
+        let filemeta: Vec<FileMeta> = sqlx::query_as(
+            r#"
+                SELECT id, customer_id, url FROM
+                    filemeta
+                WHERE
+                    id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_all(&self.db_conn)
+        .await?
+        .into_iter()
+        .map(|dao: FileMetaDAO| dao.into())
+        .collect();
+
+        Ok(filemeta)
     }
 
     async fn list_file_meta_by_customer_id(&self, customer_id: &Uuid) -> Result<Vec<FileMeta>> {
-        Ok(vec![])
+        let filemeta: Vec<FileMeta> = sqlx::query_as(
+            r#"
+                SELECT id, customer_id, url FROM
+                    filemeta
+                WHERE
+                    customer_id = $1
+            "#,
+        )
+        .bind(customer_id)
+        .fetch_all(&self.db_conn)
+        .await?
+        .into_iter()
+        .map(|dao: FileMetaDAO| dao.into())
+        .collect();
+
+        Ok(filemeta)
     }
 }
