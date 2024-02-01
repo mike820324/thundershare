@@ -153,7 +153,7 @@ impl FileServiceTrait for FileServiceImpl {
             bail!(FileError::FileSharingLinkExpired)
         }
 
-        if (file_sharing_meta.is_password_correct(&password.unwrap_or(String::new()))) {
+        if (!file_sharing_meta.is_password_correct(&password.unwrap_or(String::new()))) {
             bail!(FileError::FileSharingLinkPasswordIncorrect)
         }
 
