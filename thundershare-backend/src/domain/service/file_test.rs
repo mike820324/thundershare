@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, TimeZone, Utc};
 use tokio::sync::RwLock;
 use uuid::{uuid, Uuid};
 
-use crate::domain::{entity::file_meta::FileMeta, error::file::FileError, repository::file_meta::MockFileMetaRepositoryTrait};
+use crate::domain::{entity::file_meta::FileMeta, error::file::FileError, repository::{file_meta::MockFileMetaRepositoryTrait, file_sharing::MockFileSharingRepositoryTrait}};
 
 use super::file::{FileServiceImpl, FileServiceTrait, MockFileUploaderTrait};
 
@@ -32,6 +33,10 @@ impl FileSvcTestContext {
     }
 }
 
+fn fake_current_at() -> DateTime<Utc> {
+    Utc.with_ymd_and_hms(1990, 3, 3, 0, 0, 0).unwrap()
+}
+
 #[actix_rt::test]
 async fn test_file_svc_read_by_id() {
     let test_context = vec![
@@ -55,10 +60,17 @@ async fn test_file_svc_read_by_id() {
                     mock_repo
                 };
 
+                let mock_file_sharing_meta_repo = {
+                    let mut mock_repo = MockFileSharingRepositoryTrait::new();
+
+                    mock_repo
+                };
+
                 let svc = {
                     let file_uploader = Arc::new(mock_file_uploader);
                     let file_meta_repo = Arc::new(RwLock::new(mock_file_meta_repo));
-                    FileServiceImpl::new(file_uploader, file_meta_repo)
+                    let file_sharing_meta_repo = Arc::new(RwLock::new(mock_file_sharing_meta_repo));
+                    FileServiceImpl::new(fake_current_at, file_uploader, file_meta_repo, file_sharing_meta_repo)
                 };
 
                 svc
@@ -85,11 +97,19 @@ async fn test_file_svc_read_by_id() {
                     mock_repo
                 };
 
+                let mock_file_sharing_meta_repo = {
+                    let mut mock_repo = MockFileSharingRepositoryTrait::new();
+
+                    mock_repo
+                };
+
                 let svc = {
                     let file_uploader = Arc::new(mock_file_uploader);
                     let file_meta_repo = Arc::new(RwLock::new(mock_file_meta_repo));
-                    FileServiceImpl::new(file_uploader, file_meta_repo)
+                    let file_sharing_meta_repo = Arc::new(RwLock::new(mock_file_sharing_meta_repo));
+                    FileServiceImpl::new(fake_current_at, file_uploader, file_meta_repo, file_sharing_meta_repo)
                 };
+
                 svc
             },
             FileSvcTestContextExpectedResult::WithFileMetaResult(Err(FileError::FileNotFound)),
@@ -114,10 +134,17 @@ async fn test_file_svc_read_by_id() {
                     mock_repo
                 };
 
+                let mock_file_sharing_meta_repo = {
+                    let mut mock_repo = MockFileSharingRepositoryTrait::new();
+
+                    mock_repo
+                };
+
                 let svc = {
                     let file_uploader = Arc::new(mock_file_uploader);
                     let file_meta_repo = Arc::new(RwLock::new(mock_file_meta_repo));
-                    FileServiceImpl::new(file_uploader, file_meta_repo)
+                    let file_sharing_meta_repo = Arc::new(RwLock::new(mock_file_sharing_meta_repo));
+                    FileServiceImpl::new(fake_current_at, file_uploader, file_meta_repo, file_sharing_meta_repo)
                 };
 
                 svc
@@ -164,10 +191,17 @@ async fn test_file_svc_list_by_customer_id() {
                     mock_repo
                 };
 
+                let mock_file_sharing_meta_repo = {
+                    let mut mock_repo = MockFileSharingRepositoryTrait::new();
+
+                    mock_repo
+                };
+
                 let svc = {
                     let file_uploader = Arc::new(mock_file_uploader);
                     let file_meta_repo = Arc::new(RwLock::new(mock_file_meta_repo));
-                    FileServiceImpl::new(file_uploader, file_meta_repo)
+                    let file_sharing_meta_repo = Arc::new(RwLock::new(mock_file_sharing_meta_repo));
+                    FileServiceImpl::new(fake_current_at, file_uploader, file_meta_repo, file_sharing_meta_repo)
                 };
 
                 svc
@@ -194,10 +228,17 @@ async fn test_file_svc_list_by_customer_id() {
                     mock_repo
                 };
 
+                let mock_file_sharing_meta_repo = {
+                    let mut mock_repo = MockFileSharingRepositoryTrait::new();
+
+                    mock_repo
+                };
+
                 let svc = {
                     let file_uploader = Arc::new(mock_file_uploader);
                     let file_meta_repo = Arc::new(RwLock::new(mock_file_meta_repo));
-                    FileServiceImpl::new(file_uploader, file_meta_repo)
+                    let file_sharing_meta_repo = Arc::new(RwLock::new(mock_file_sharing_meta_repo));
+                    FileServiceImpl::new(fake_current_at, file_uploader, file_meta_repo, file_sharing_meta_repo)
                 };
 
                 svc
@@ -246,10 +287,17 @@ async fn test_file_svc_file_upload() {
                     mock_repo
                 };
 
+                let mock_file_sharing_meta_repo = {
+                    let mut mock_repo = MockFileSharingRepositoryTrait::new();
+
+                    mock_repo
+                };
+
                 let svc = {
                     let file_uploader = Arc::new(mock_file_uploader);
                     let file_meta_repo = Arc::new(RwLock::new(mock_file_meta_repo));
-                    FileServiceImpl::new(file_uploader, file_meta_repo)
+                    let file_sharing_meta_repo = Arc::new(RwLock::new(mock_file_sharing_meta_repo));
+                    FileServiceImpl::new(fake_current_at, file_uploader, file_meta_repo, file_sharing_meta_repo)
                 };
 
                 svc

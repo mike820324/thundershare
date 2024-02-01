@@ -14,7 +14,7 @@ use tokio::sync::RwLock;
 
 use self::{customer::CustomerServiceImpl, file::{FileServiceImpl, FileUploaderTrait}};
 
-use super::repository::{customer::CustomerRepositoryTrait, file_meta::FileMetaRepositoryTrait, used_token::UsedTokenRepositoryTrait};
+use super::repository::{customer::CustomerRepositoryTrait, file_meta::FileMetaRepositoryTrait, file_sharing::FileSharingRepositoryTrait, used_token::UsedTokenRepositoryTrait};
 
 fn issue_at_fn() -> DateTime<Utc> {
     chrono::Utc::now()
@@ -32,11 +32,12 @@ impl ServerService {
         customer_repository: Arc<RwLock<dyn CustomerRepositoryTrait>>,
         used_token_repository: Arc<RwLock<dyn UsedTokenRepositoryTrait>>,
         file_meta_repository: Arc<RwLock<dyn FileMetaRepositoryTrait>>,
+        file_sharing_meta_repository: Arc<RwLock<dyn FileSharingRepositoryTrait>>,
     ) -> ServerService {
         let customer_service =
             CustomerServiceImpl::new(issue_at_fn, customer_repository, used_token_repository);
 
-        let file_service = FileServiceImpl::new(file_uploader, file_meta_repository);
+        let file_service = FileServiceImpl::new(issue_at_fn, file_uploader, file_meta_repository, file_sharing_meta_repository);
 
         ServerService { customer_service, file_service }
     }
