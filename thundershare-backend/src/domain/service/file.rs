@@ -1,4 +1,5 @@
 
+use actix_files::NamedFile;
 use anyhow::{bail, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
@@ -14,6 +15,7 @@ use crate::domain::{entity::file_meta::{FileMeta, FileSharingMeta}, error::file:
 #[async_trait(?Send)]
 pub trait FileUploaderTrait {
     async fn upload(&self, src_filename: &str, dest_filename: &str) -> Result<()>;
+    async fn download(&self, file_meta: &FileMeta) -> Result<NamedFile>;
 }
 
 pub struct LocalFileUploaderImpl {}
@@ -31,6 +33,16 @@ impl FileUploaderTrait for LocalFileUploaderImpl {
         rename(src_filename, dest_filename).await?;
         Ok(())
     }
+
+    async fn download(&self, file_meta: &FileMeta) -> Result<NamedFile> {
+        info!("[DEBUG] file meta: {:?}", file_meta);
+        match NamedFile::open_async(file_meta.get_url()).await {
+            Ok(file) => {
+                Ok(file)
+            }
+            Err(_) => bail!(FileError::FileNotFound),
+        }
+    }
 }
 
 #[automock]
@@ -40,7 +52,7 @@ pub trait FileServiceTrait {
     async fn file_read_by_id(&self, id: &Uuid, customer_id: &Uuid) -> Result<FileMeta>;
     async fn file_list_by_customer_id(&self, customer_id: &Uuid) -> Result<Vec<FileMeta>>;
     async fn file_create_sharing_link(&self, file_id: &Uuid, expireat: &DateTime<Utc>, password: &Option<String>) -> Result<FileSharingMeta>;
-    async fn file_get_sharing_link_by_id(&self, file_id: &Uuid, password: Option<String>) -> Result<FileSharingMeta>;
+    async fn file_get_sharing_link_by_id(&self, file_id: &Uuid, password: Option<String>) -> Result<NamedFile>;
 }
 
 
@@ -125,7 +137,7 @@ impl FileServiceTrait for FileServiceImpl {
         Ok(file_sharing_meta)
     }
 
-    async fn file_get_sharing_link_by_id(&self, id: &Uuid, password: Option<String>) -> Result<FileSharingMeta> {
+    async fn file_get_sharing_link_by_id(&self, id: &Uuid, password: Option<String>) -> Result<NamedFile> {
         let file_sharing_meta_list = {
             let repo = self.file_sharing_meta_repository.read().await;
             repo.get_by_id(id).await?
@@ -144,7 +156,20 @@ impl FileServiceTrait for FileServiceImpl {
         if (file_sharing_meta.is_password_correct(&password.unwrap_or(String::new()))) {
             bail!(FileError::FileSharingLinkPasswordIncorrect)
         }
-        Ok(file_sharing_meta_list[0].clone())
+
+        let file_meta_list = {
+            let repo = self.file_meta_repository.read().await;
+            repo.get_file_meta_by_id(&file_sharing_meta.get_file_id()).await?
+        };
+
+        if file_meta_list.len() == 0 {
+            bail!(FileError::FileNotFound)
+        }
+
+        let file_meta = file_meta_list[0].clone();
+
+        let file_stream = self.file_uploader.download(&file_meta).await?;
+        Ok(file_stream)
     }
 
 }

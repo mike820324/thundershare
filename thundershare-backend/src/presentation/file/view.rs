@@ -173,13 +173,8 @@ pub async fn file_sharing_get_by_id_v1(
         .await;
 
     match result {
-        Ok(file_meta) => {
-            match NamedFile::open_async(file_meta.get_link()).await {
-                Ok(file) => {
-                    file.into_response(&request)
-                }
-                Err(_) => HttpResponse::NotFound().body("File not found"),
-            }
+        Ok(file_stream) => {
+            file_stream.into_response(&request)
         },
         Err(err) => {
             let domain_err: FileError = err.downcast().unwrap();

@@ -32,6 +32,10 @@ impl FileSharingMeta {
         self.id
     }
 
+    pub fn get_file_id(&self) -> Uuid {
+        self.file_id
+    }
+
     pub fn get_link(&self) -> String {
         self.link.clone()
     }
