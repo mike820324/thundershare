@@ -2,6 +2,7 @@
 use anyhow::{bail, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
+use log::info;
 use mockall::automock;
 use std::{io::Bytes, sync::Arc};
 use tokio::{fs::rename, sync::RwLock};
@@ -26,6 +27,7 @@ impl LocalFileUploaderImpl {
 #[async_trait(?Send)]
 impl FileUploaderTrait for LocalFileUploaderImpl {
     async fn upload(&self, src_filename: &str, dest_filename: &str) -> Result<()> {
+        info!("[DEBUG] src: {:?}, dest: {:?}", src_filename, dest_filename);
         rename(src_filename, dest_filename).await?;
         Ok(())
     }
@@ -34,7 +36,7 @@ impl FileUploaderTrait for LocalFileUploaderImpl {
 #[automock]
 #[async_trait(?Send)]
 pub trait FileServiceTrait {
-    async fn file_upload(&self, filename: &str) -> Result<FileMeta>;
+    async fn file_upload(&self, customer_id: &Uuid, filename: &str) -> Result<FileMeta>;
     async fn file_read_by_id(&self, id: &Uuid, customer_id: &Uuid) -> Result<FileMeta>;
     async fn file_list_by_customer_id(&self, customer_id: &Uuid) -> Result<Vec<FileMeta>>;
 }
@@ -66,7 +68,7 @@ impl FileServiceImpl {
 
 #[async_trait(?Send)]
 impl FileServiceTrait for FileServiceImpl {
-    async fn file_upload(&self, filename: &str) -> Result<FileMeta> {
+    async fn file_upload(&self, customer_id: &Uuid, filename: &str) -> Result<FileMeta> {
         let dest_filename = self.fileid_generator();
         let url = dest_filename.clone();
 
@@ -74,7 +76,7 @@ impl FileServiceTrait for FileServiceImpl {
 
         let file_meta = {
             let repo = self.file_meta_repository.write().await;
-            repo.create(&url).await?
+            repo.create(customer_id, &url).await?
         };
         Ok(file_meta)
     }

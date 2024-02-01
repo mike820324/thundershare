@@ -231,7 +231,7 @@ async fn test_file_svc_file_upload() {
                     let mut mock_repo = MockFileMetaRepositoryTrait::new();
                     mock_repo.expect_create()
                     .times(1)
-                    .returning(|_url| {Ok(FileMeta::new(""))});
+                    .returning(|customer_id, _url| {Ok(FileMeta::new(""))});
 
                     mock_repo
                 };
@@ -261,7 +261,7 @@ async fn test_file_svc_file_upload() {
     for t in test_context {
         let svc = (t.setup_fn)();
         let result = svc
-            .file_upload("")
+            .file_upload(&Uuid::default(), "")
             .await
             .map_err(|err| err.downcast().unwrap());
 
