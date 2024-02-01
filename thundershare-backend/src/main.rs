@@ -52,6 +52,7 @@ async fn main() -> std::io::Result<()> {
     let server_location = server_host + ":" + &server_port;
 
     let db_pool = connection_builder().await.unwrap();
+    sqlx::migrate!("./migrations").run(&db_pool).await.unwrap();
 
     HttpServer::new(move || {
         let file_uploader = LocalFileUploaderImpl::new();
