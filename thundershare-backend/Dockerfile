@@ -9,6 +9,7 @@ RUN cargo build --release
 RUN rm -f target/release/deps/thundershare_backend*
 RUN rm -rf src/
 COPY src src
+COPY migrations migrations
 RUN cargo build --release
 
 FROM debian:buster-slim

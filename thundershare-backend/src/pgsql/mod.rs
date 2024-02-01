@@ -18,8 +18,8 @@ pub async fn connection_builder() -> Result<DbPool, sqlx::Error> {
     let db_user = std::env::var("DB_USER").unwrap();
     let db_host = std::env::var("DB_HOST").unwrap();
     let db_name = std::env::var("DB_NAME").unwrap();
-
     let db_pass = std::env::var("DB_PASS").unwrap();
+
     let encoded_db_pass = encode(&db_pass);
 
     let connectspec = format!(
