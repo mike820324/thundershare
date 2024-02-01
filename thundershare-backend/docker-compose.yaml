@@ -16,6 +16,7 @@ services:
       DB_NAME: thundershare
       DB_USER: pgsql
       DB_PASS: password
+      TMPDIR: /tmp
     depends_on:
       - db
   db:
