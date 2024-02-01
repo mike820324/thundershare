@@ -8,6 +8,7 @@ use chrono::{DateTime, Duration, Utc};
 use mockall::automock;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 #[automock]
 #[async_trait(?Send)]
@@ -16,6 +17,7 @@ pub trait CustomerServiceTrait {
     async fn customer_signin(&self, username: &str, password: &str) -> Result<Identity>;
     async fn customer_signout(&self, identity: &Identity) -> Result<()>;
     async fn get_customer_by_username(&self, username: &str) -> Result<Customer>;
+    async fn get_customer_by_id(&self, username: &Uuid) -> Result<Customer>;
 }
 
 pub struct CustomerServiceImpl {
@@ -90,6 +92,19 @@ impl CustomerServiceTrait for CustomerServiceImpl {
         let customer_list = {
             let repo = self.customer_repository.read().await;
             repo.get_customer_by_username(username).await?
+        };
+
+        if customer_list.len() == 0 {
+            bail!(CustomerError::CustomerNotFound)
+        }
+
+        Ok(customer_list[0].clone())
+    }
+
+    async fn get_customer_by_id(&self, id: &Uuid) -> Result<Customer> {
+        let customer_list = {
+            let repo = self.customer_repository.read().await;
+            repo.get_customer_by_id(id).await?
         };
 
         if customer_list.len() == 0 {
