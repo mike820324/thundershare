@@ -36,6 +36,10 @@ impl FileSharingMeta {
         self.link.clone()
     }
 
+    pub fn get_expireat(&self) -> DateTime<Utc> {
+        self.expireat
+    }
+
     pub fn is_expired(&self, curr_time: &DateTime<Utc>) -> bool {
         self.expireat < *curr_time
     }

@@ -10,7 +10,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use uuid::Uuid;
 use log::info;
 
-use super::dto::{map_domain_error_to_response, FileListByCustomerIdV1RespDTO, FileReadByIdV1RespDTO, FileUploadV1ReqDTO, FileUploadV1RespDTO};
+use super::dto::{map_domain_error_to_response, FileListByCustomerIdV1RespDTO, FileReadByIdV1RespDTO, FileSharingCreateV1ReqDTO, FileSharingCreateV1RespDTO, FileUploadV1ReqDTO, FileUploadV1RespDTO};
 
 pub async fn file_read_by_id_v1(
     server_services: web::Data<ServerService>,
@@ -108,6 +108,46 @@ pub async fn file_upload_v1(
     match result {
         Ok(file_meta) => {
             let resp: ResponseData<FileUploadV1RespDTO> = file_meta.into();
+            HttpResponse::Ok().json(resp)
+        },
+        Err(err) => {
+            let domain_err: FileError = err.downcast().unwrap();
+            let resp: ResponseData<FileUploadV1RespDTO> = domain_err.clone().into();
+
+            map_domain_error_to_response(domain_err, resp)
+        }
+    }
+}
+
+pub async fn file_sharing_create_v1(
+    server_services: web::Data<ServerService>,
+    request: HttpRequest,
+    user_data: web::Json<FileSharingCreateV1ReqDTO>,
+) -> impl Responder {
+    // NOTE: authn checking
+    let token = match request.cookie("token") {
+        Some(token) => token,
+        None => {
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+
+    let identity = match Identity::from_string(&token.value()) {
+        Ok(identity) => identity,
+        Err(_err) => {
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+
+
+    let svc = server_services.file_service.clone();
+    let result = svc
+        .file_create_sharing_link(&user_data.file_id, &user_data.expireat, &user_data.password)
+        .await;
+
+    match result {
+        Ok(file_meta) => {
+            let resp: ResponseData<FileSharingCreateV1RespDTO> = file_meta.into();
             HttpResponse::Ok().json(resp)
         },
         Err(err) => {

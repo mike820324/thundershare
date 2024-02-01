@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{HttpResponse, Responder};
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{domain::{entity::file_meta::FileMeta, error::file::FileError}, presentation::ResponseData};
+use crate::{domain::{entity::file_meta::{FileMeta, FileSharingMeta}, error::file::FileError}, presentation::ResponseData};
 
 #[derive(serde::Serialize)]
 pub struct FileReadByIdV1RespDTO {
@@ -85,6 +86,7 @@ impl From<FileError> for ResponseData<FileUploadV1RespDTO> {
         ResponseData::new(false, error.to_string(), None)
     }
 }
+
 pub fn map_domain_error_to_response<T: serde::Serialize>(err: FileError, resp: ResponseData<T>) -> HttpResponse {
     match err {
         FileError::FileNotFound => HttpResponse::NotFound().json(resp),
@@ -93,4 +95,38 @@ pub fn map_domain_error_to_response<T: serde::Serialize>(err: FileError, resp: R
         FileError::FileSharingLinkPasswordIncorrect => HttpResponse::Unauthorized().json(resp),
     }
 
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct FileSharingCreateV1ReqDTO {
+    pub file_id: Uuid,
+    #[serde(with = "chrono::serde::ts_seconds")]
+    pub expireat: DateTime<Utc>,
+    pub password: Option<String>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct FileSharingCreateV1RespDTO {
+    id: Uuid,
+    link: String,
+    #[serde(with = "chrono::serde::ts_seconds")]
+    expireat: DateTime<Utc>,
+}
+
+impl From<FileSharingMeta> for ResponseData<FileSharingCreateV1RespDTO> {
+    fn from(data: FileSharingMeta) -> ResponseData<FileSharingCreateV1RespDTO> {
+        let resp_data = Some(FileSharingCreateV1RespDTO{
+            id: data.get_id(),
+            link: data.get_link(),
+            expireat: data.get_expireat(),
+        });
+
+        ResponseData::new(true, String::new(), resp_data)
+    }
+}
+
+impl From<FileError> for ResponseData<FileSharingCreateV1RespDTO> {
+    fn from(error: FileError) -> ResponseData<FileSharingCreateV1RespDTO> {
+        ResponseData::new(false, error.to_string(), None)
+    }
 }
