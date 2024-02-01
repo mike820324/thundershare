@@ -63,7 +63,7 @@ pub struct FileUploadV1ReqDTO{
 impl FileUploadV1ReqDTO {
     pub fn get_temp_filename(&self) -> String {
         let temp_file = &self.data;
-        temp_file.file_name.clone().unwrap()
+        temp_file.file.path().to_str().unwrap().to_string()
     }
 }
 
