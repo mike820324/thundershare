@@ -7,6 +7,8 @@ use crate::presentation::ResponseData;
 use actix_multipart::form::MultipartForm;
 use actix_web::Responder;
 use actix_web::{web, HttpRequest, HttpResponse};
+use actix_files::NamedFile;
+use tokio::stream;
 use uuid::Uuid;
 use log::info;
 
@@ -172,8 +174,12 @@ pub async fn file_sharing_get_by_id_v1(
 
     match result {
         Ok(file_meta) => {
-            let resp: ResponseData<FileSharingCreateV1RespDTO> = file_meta.into();
-            HttpResponse::Ok().json(resp)
+            match NamedFile::open_async(file_meta.get_link()).await {
+                Ok(file) => {
+                    file.into_response(&request)
+                }
+                Err(_) => HttpResponse::NotFound().body("File not found"),
+            }
         },
         Err(err) => {
             let domain_err: FileError = err.downcast().unwrap();
