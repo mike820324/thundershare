@@ -25,7 +25,19 @@ The docker compose currently use v0.1.4, so if the tag version is changed, pleas
 - issue `cargo build`
 
 ## Perform Local Server
+- issue `sudo docker-compose up db`
+- Create a .env file like the following example
 - issue `TMPDIR=./ cargo run`
+
+```.env
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=thundershare
+DB_USER=pgsql
+DB_PASS=password
+```
   
 ## Perform Unit Test
 - issue `cargo test`
