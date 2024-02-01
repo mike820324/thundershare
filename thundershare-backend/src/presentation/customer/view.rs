@@ -4,7 +4,7 @@ use crate::domain::service::customer::CustomerServiceTrait;
 use crate::domain::service::ServerService;
 use crate::presentation::ResponseData;
 
-use super::dto::{CustomerSigninV1ReqDTO, CustomerSignupV1ReqDTO, CustomerSignupV1RespDTO};
+use super::dto::{CustomerGetByIdV1RespDTO, CustomerSigninV1ReqDTO, CustomerSignupV1ReqDTO, CustomerSignupV1RespDTO};
 use actix_web::cookie::time::{Duration, OffsetDateTime};
 use actix_web::cookie::{Cookie, SameSite};
 use actix_web::Responder;
@@ -90,3 +90,48 @@ pub async fn customer_signout_v1(
     let cookie = new_cookie("");
     HttpResponse::Ok().cookie(cookie).finish()
 }
+
+pub async fn customer_get_by_id_v1(
+    server_services: web::Data<ServerService>,
+    request: HttpRequest,
+    id: web::Path<String>,
+) -> impl Responder {
+    let user_id: &str = id.as_str();
+    if user_id != "self" {
+        return HttpResponse::BadRequest().finish();
+    }
+
+    let token = match request.cookie("token") {
+        Some(token) => token,
+        None => {
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+
+    let identity = match Identity::from_string(&token.value()) {
+        Ok(identity) => identity,
+        Err(_err) => {
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+
+    let svc = server_services.customer_service.clone();
+    let result = svc.get_customer_by_id(&identity.get_id()).await;
+
+    match result {
+        Ok(file_meta) => {
+            let resp: ResponseData<CustomerGetByIdV1RespDTO> = file_meta.into();
+            HttpResponse::Ok().json(resp)
+        },
+        Err(err) => {
+            let domain_err: CustomerError = err.downcast().unwrap();
+            let resp: ResponseData<CustomerGetByIdV1RespDTO> = domain_err.clone().into();
+
+            match domain_err {
+                CustomerError::CustomerNotFound => HttpResponse::NotFound().json(resp),
+                _ => HttpResponse::InternalServerError().json(resp),
+            }
+        }
+    }
+}
+

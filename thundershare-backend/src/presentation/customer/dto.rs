@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use crate::{
     domain::{
         entity::{customer::Customer, identity::Identity},
@@ -46,6 +48,29 @@ impl From<Identity> for ResponseData<CustomerSigninV1RespDTO> {
 
 impl From<CustomerError> for ResponseData<CustomerSigninV1RespDTO> {
     fn from(error: CustomerError) -> ResponseData<CustomerSigninV1RespDTO> {
+        ResponseData::new(false, error.to_string(), None)
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct CustomerGetByIdV1RespDTO {
+    id: Uuid,
+    username: String,
+}
+
+impl From<Customer> for ResponseData<CustomerGetByIdV1RespDTO> {
+    fn from(svc_data: Customer) -> ResponseData<CustomerGetByIdV1RespDTO> {
+        let resp = CustomerGetByIdV1RespDTO {
+            id: svc_data.get_id(),
+            username: svc_data.get_username(),
+        };
+
+        ResponseData::new(true, String::new(), Some(resp))
+    }
+}
+
+impl From<CustomerError> for ResponseData<CustomerGetByIdV1RespDTO> {
+    fn from(error: CustomerError) -> ResponseData<CustomerGetByIdV1RespDTO> {
         ResponseData::new(false, error.to_string(), None)
     }
 }
