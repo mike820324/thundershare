@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
+use actix_web::{HttpResponse, Responder};
 use uuid::Uuid;
 
 use crate::{domain::{entity::file_meta::FileMeta, error::file::FileError}, presentation::ResponseData};
@@ -83,4 +84,13 @@ impl From<FileError> for ResponseData<FileUploadV1RespDTO> {
     fn from(error: FileError) -> ResponseData<FileUploadV1RespDTO> {
         ResponseData::new(false, error.to_string(), None)
     }
+}
+pub fn map_domain_error_to_response<T: serde::Serialize>(err: FileError, resp: ResponseData<T>) -> HttpResponse {
+    match err {
+        FileError::FileNotFound => HttpResponse::NotFound().json(resp),
+        FileError::FileNotBelongToCustomer => HttpResponse::Forbidden().json(resp),
+        FileError::FileSharingLinkExpired => HttpResponse::Forbidden().json(resp),
+        FileError::FileSharingLinkPasswordIncorrect => HttpResponse::Unauthorized().json(resp),
+    }
+
 }

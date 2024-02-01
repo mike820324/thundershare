@@ -67,6 +67,7 @@ async fn main() -> std::io::Result<()> {
             server_repositories.customer_repository,
             server_repositories.used_token_repository,
             server_repositories.file_meta_repository,
+            server_repositories.file_sharing_meta_repository,
         );
         App::new()
             .wrap(Logger::default())

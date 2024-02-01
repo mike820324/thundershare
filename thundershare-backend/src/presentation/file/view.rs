@@ -10,7 +10,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use uuid::Uuid;
 use log::info;
 
-use super::dto::{FileListByCustomerIdV1RespDTO, FileReadByIdV1RespDTO, FileUploadV1ReqDTO, FileUploadV1RespDTO};
+use super::dto::{map_domain_error_to_response, FileListByCustomerIdV1RespDTO, FileReadByIdV1RespDTO, FileUploadV1ReqDTO, FileUploadV1RespDTO};
 
 pub async fn file_read_by_id_v1(
     server_services: web::Data<ServerService>,
@@ -40,10 +40,7 @@ pub async fn file_read_by_id_v1(
             let domain_err: FileError = err.downcast().unwrap();
             let resp: ResponseData<FileReadByIdV1RespDTO> = domain_err.clone().into();
 
-            match domain_err {
-                FileError::FileNotFound => HttpResponse::NotFound().json(resp),
-                FileError::FileNotBelongToCustomer => HttpResponse::Forbidden().json(resp),
-            }
+            map_domain_error_to_response(domain_err, resp)
         }
     }
 
@@ -75,8 +72,8 @@ pub async fn file_list_by_customer_id_v1(
         },
         Err(err) => {
             let domain_err: FileError = err.downcast().unwrap();
-            let resp: ResponseData<FileReadByIdV1RespDTO> = domain_err.into();
-            HttpResponse::InternalServerError().json(resp)
+            let resp: ResponseData<FileReadByIdV1RespDTO> = domain_err.clone().into();
+            map_domain_error_to_response(domain_err, resp)
         }
     }
 }
@@ -117,10 +114,7 @@ pub async fn file_upload_v1(
             let domain_err: FileError = err.downcast().unwrap();
             let resp: ResponseData<FileUploadV1RespDTO> = domain_err.clone().into();
 
-            match domain_err {
-                FileError::FileNotFound => HttpResponse::NotFound().json(resp),
-                FileError::FileNotBelongToCustomer => HttpResponse::Forbidden().json(resp),
-            }
+            map_domain_error_to_response(domain_err, resp)
         }
     }
 }

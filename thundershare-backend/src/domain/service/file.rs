@@ -1,14 +1,14 @@
 
 use anyhow::{bail, Result};
 use async_trait::async_trait;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, FixedOffset, Utc};
 use log::info;
 use mockall::automock;
 use std::{io::Bytes, sync::Arc};
 use tokio::{fs::rename, sync::RwLock};
 use sqlx::types::Uuid;
 
-use crate::domain::{entity::file_meta::FileMeta, error::file::FileError, repository::file_meta::FileMetaRepositoryTrait};
+use crate::domain::{entity::file_meta::{FileMeta, FileSharingMeta}, error::file::FileError, repository::{file_meta::FileMetaRepositoryTrait, file_sharing::FileSharingRepositoryTrait}};
 
 #[automock]
 #[async_trait(?Send)]
@@ -39,22 +39,30 @@ pub trait FileServiceTrait {
     async fn file_upload(&self, customer_id: &Uuid, filename: &str) -> Result<FileMeta>;
     async fn file_read_by_id(&self, id: &Uuid, customer_id: &Uuid) -> Result<FileMeta>;
     async fn file_list_by_customer_id(&self, customer_id: &Uuid) -> Result<Vec<FileMeta>>;
+    async fn file_create_sharing_link(&self, file_id: &Uuid, expireat: &DateTime<Utc>, password: &Option<String>) -> Result<FileSharingMeta>;
+    async fn file_get_sharing_link_by_id(&self, file_id: &Uuid, password: Option<String>) -> Result<FileSharingMeta>;
 }
 
 
 pub struct FileServiceImpl {
+    curr_time_fn: Box<dyn Fn() -> DateTime<Utc>>,
     file_uploader: Arc<dyn FileUploaderTrait>,
     file_meta_repository: Arc<RwLock<dyn FileMetaRepositoryTrait>>,
+    file_sharing_meta_repository: Arc<RwLock<dyn FileSharingRepositoryTrait>>,
 }
 
 impl FileServiceImpl {
     pub fn new(
+        curr_time_fn: impl Fn() -> DateTime<Utc> + 'static,
         file_uploader: Arc<dyn FileUploaderTrait>,
         file_meta_repository: Arc<RwLock<dyn FileMetaRepositoryTrait>>,
+        file_sharing_meta_repository: Arc<RwLock<dyn FileSharingRepositoryTrait>>,
     ) -> Arc<FileServiceImpl> {
         let svc = FileServiceImpl {
+            curr_time_fn: Box::new(curr_time_fn),
             file_uploader: file_uploader.clone(),
             file_meta_repository: file_meta_repository.clone(),
+            file_sharing_meta_repository: file_sharing_meta_repository.clone(),
         };
 
         Arc::new(svc)
@@ -106,6 +114,37 @@ impl FileServiceTrait for FileServiceImpl {
             repo.list_file_meta_by_customer_id(customer_id).await?
         };
         Ok(file_meta_list)
+    }
+
+    async fn file_create_sharing_link(&self, id: &Uuid, expireat: &DateTime<Utc>, password: &Option<String>) -> Result<FileSharingMeta> {
+        let link = "TODO";
+        let file_sharing_meta = {
+            let repo = self.file_sharing_meta_repository.read().await;
+            repo.create(id, link, expireat, password).await?
+        };
+        Ok(file_sharing_meta)
+    }
+
+    async fn file_get_sharing_link_by_id(&self, id: &Uuid, password: Option<String>) -> Result<FileSharingMeta> {
+        let file_sharing_meta_list = {
+            let repo = self.file_sharing_meta_repository.read().await;
+            repo.get_by_id(id).await?
+        };
+
+        if file_sharing_meta_list.len() == 0 {
+            bail!(FileError::FileNotFound)
+        }
+
+        let curr_time = (self.curr_time_fn)();
+        let file_sharing_meta = file_sharing_meta_list[0].clone();
+        if (file_sharing_meta.is_expired(&curr_time)) {
+            bail!(FileError::FileSharingLinkExpired)
+        }
+
+        if (file_sharing_meta.is_password_correct(&password.unwrap_or(String::new()))) {
+            bail!(FileError::FileSharingLinkPasswordIncorrect)
+        }
+        Ok(file_sharing_meta_list[0].clone())
     }
 
 }
