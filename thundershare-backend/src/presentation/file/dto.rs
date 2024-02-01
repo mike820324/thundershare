@@ -130,3 +130,26 @@ impl From<FileError> for ResponseData<FileSharingCreateV1RespDTO> {
         ResponseData::new(false, error.to_string(), None)
     }
 }
+
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct FileSharingGetByIdV1ReqDTO {
+    pub password: Option<String>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct FileSharingGetByIdV1RespDTO {}
+
+impl From<FileSharingMeta> for ResponseData<FileSharingGetByIdV1RespDTO> {
+    fn from(data: FileSharingMeta) -> ResponseData<FileSharingGetByIdV1RespDTO> {
+        let resp_data = Some(FileSharingGetByIdV1RespDTO{});
+
+        ResponseData::new(true, String::new(), resp_data)
+    }
+}
+
+impl From<FileError> for ResponseData<FileSharingGetByIdV1RespDTO> {
+    fn from(error: FileError) -> ResponseData<FileSharingGetByIdV1RespDTO> {
+        ResponseData::new(false, error.to_string(), None)
+    }
+}

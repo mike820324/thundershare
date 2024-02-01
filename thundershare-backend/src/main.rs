@@ -10,7 +10,7 @@ use domain::service::ServerService;
 use env_logger::Env;
 use pgsql::{connection_builder, ServerRepositories};
 use presentation::customer::view::{customer_get_by_id_v1, customer_signin_v1, customer_signout_v1, customer_signup_v1};
-use presentation::file::view::{file_list_by_customer_id_v1, file_read_by_id_v1, file_sharing_create_v1, file_upload_v1};
+use presentation::file::view::{file_list_by_customer_id_v1, file_read_by_id_v1, file_sharing_create_v1, file_sharing_get_by_id_v1, file_upload_v1};
 
 pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {
     // NOTE: customer auth related endpoints
@@ -49,6 +49,10 @@ pub fn register_routes(cfg: &mut actix_web::web::ServiceConfig) {
     cfg.route(
         "/api/v1/file-sharing",
         web::post().to(file_sharing_create_v1),
+    )
+    .route(
+        "/api/v1/file-sharing/{id}",
+        web::post().to(file_sharing_get_by_id_v1),
     );
 
 }
