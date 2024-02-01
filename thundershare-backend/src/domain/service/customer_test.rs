@@ -318,3 +318,79 @@ async fn test_customer_svc_get_customer_by_username() {
         assert_eq!(result, expected_result);
     }
 }
+
+#[actix_rt::test]
+async fn test_customer_svc_get_customer_by_id() {
+    let test_context = vec![
+        CustomerSvcTestContext::new(
+            Customer::new("mikejiang"),
+            || {
+                let mock_used_token_repo = {
+                    let mut mock_repo = MockUsedTokenRepositoryTrait::new();
+                    mock_repo
+                };
+
+                let mock_customer_repo = {
+                    let mut mock_repo = MockCustomerRepositoryTrait::new();
+                    mock_repo
+                        .expect_get_customer_by_id()
+                        .times(1)
+                        .returning(|_id| Ok(vec![Customer::new("mikejiang")]));
+                    mock_repo
+                };
+
+                let svc = {
+                    let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(fake_issue_at, customer_repo, used_token_repo)
+                };
+
+                svc
+            },
+            CustomerTestContextExpectedResult::WithCustomerResult(Ok(Customer::new("mikejiang"))),
+        ),
+        CustomerSvcTestContext::new(
+            Customer::new("mikejiang"),
+            || {
+                let mock_used_token_repo = {
+                    let mut mock_repo = MockUsedTokenRepositoryTrait::new();
+                    mock_repo
+                };
+
+                let mock_customer_repo = {
+                    let mut mock_repo = MockCustomerRepositoryTrait::new();
+                    mock_repo
+                        .expect_get_customer_by_id()
+                        .times(1)
+                        .returning(|username| Ok(vec![]));
+                    mock_repo
+                };
+
+                let svc = {
+                    let customer_repo = Arc::new(RwLock::new(mock_customer_repo));
+                    let used_token_repo = Arc::new(RwLock::new(mock_used_token_repo));
+                    CustomerServiceImpl::new(fake_issue_at, customer_repo, used_token_repo)
+                };
+
+                svc
+            },
+            CustomerTestContextExpectedResult::WithCustomerResult(Err(
+                CustomerError::CustomerNotFound,
+            )),
+        ),
+    ];
+
+    for t in test_context {
+        let svc = (t.setup_fn)();
+        let result = svc
+            .get_customer_by_id(&t.input_customer.get_id())
+            .await
+            .map_err(|err| err.downcast().unwrap());
+
+        let CustomerTestContextExpectedResult::WithCustomerResult(expected_result) = t.expected
+        else {
+            return;
+        };
+        assert_eq!(result, expected_result);
+    }
+}
